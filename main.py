@@ -1,73 +1,82 @@
+# Expense Tracker - Bhai, comments apni bhasa mein, thoda jugad bhi hai, dekh le!
+
 import tkinter as tk
 from tkinter import ttk, messagebox
 import csv
 from datetime import datetime
 import matplotlib.pyplot as plt
 
-
 FILENAME = "expenses.csv"
 
-# CSV file initialize
+# Pehle check karo file hai ya nahi, nahi hai toh bana lo
 def init_file():
     try:
         with open(FILENAME, 'x', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(["Date", "Category", "Amount", "Description"])
+            writer.writerow(["Date", "Category", "Amount", "Description"])  # Header likh diya
     except FileExistsError:
-        pass
+        pass  # File already hai toh kuch mat karo, aage badho ab
 
-# Add expense to CSV
+# Naya kharcha add karo - yahan thoda dhyan se, galat input aa sakta hai
 def add_expense():
     try:
-        amount = float(amount_var.get())
+        amount = float(amount_var.get())  # yahan galti ho sakti hai, isliye try mein hai
         description = desc_var.get()
         category = category_var.get()
-        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+        date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # date ka format theek hai na?
         with open(FILENAME, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow([date, category, amount, description])
-
+        # Input fields ko reset kar do, warna purana data dikh jayega
         amount_var.set("")
         desc_var.set("")
-        category_var.set("Food")
+        category_var.set("Food")  # default food hi rehta hai, bhookh sabko lagti hai
         load_expenses()
     except ValueError:
-        messagebox.showerror("Invalid Input", "Please enter a valid amount.")
+        # Bhai, number hi daal, text nahi chalega yahan
+        messagebox.showerror("Galat Input", "Sahi amount daalo! (sirf number)")
 
-# Load expenses into Treeview
+# Table mein saare kharche dikhao, csv file se
 def load_expenses():
+    # Pehle sab row hatao, warna repeat ho jayega
     for row in tree.get_children():
         tree.delete(row)
     try:
         with open(FILENAME, 'r') as file:
             reader = csv.reader(file)
-            next(reader)
+            next(reader)  # Header skip kar diya
             for row in reader:
                 tree.insert("", tk.END, values=row)
     except FileNotFoundError:
+        # File hi nahi hai toh kuch nahi dikhega, koi baat nahi
         pass
 
-# Delete selected expense
+# Jo kharcha select kiya hai, usko hatao - delete ka jugad
 def delete_expense():
     selected = tree.selection()
     if not selected:
-        messagebox.showwarning("No selection", "Please select an expense to delete.")
+        messagebox.showwarning("Select karo", "Pehle koi kharcha select karo delete karne ke liye, bhai!")
         return
-
     index = tree.index(selected[0])
+    # Sab data list mein le lo
     with open(FILENAME, 'r') as file:
-        rows = list(csv.reader(file))
-    header, data = rows[0], rows[1:]
-
-    del data[index]
+        rows = []
+        for r in csv.reader(file):
+            rows.append(r)
+    header = rows[0]
+    data = rows[1:]
+    # Us index waala data hatao, hope sahi index ho!
+    if index < len(data):
+        data.pop(index)
+    # Wapas likh do file mein, pura overwrite ho raha hai
     with open(FILENAME, 'w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(header)
-        writer.writerows(data)
+        for row in data:
+            writer.writerow(row)
     load_expenses()
 
-# Summary of total and category-wise
+# Total aur category wise pura karcha dikha de yha - thoda math bhi hai
 def show_summary():
     total = 0
     summary = {}
@@ -76,93 +85,120 @@ def show_summary():
             reader = csv.reader(file)
             next(reader)
             for row in reader:
-                amount = float(row[2])
+                # Amount ko float mein badlo, try-catch for safety
+                try:
+                    amount = float(row[2])
+                except:
+                    amount = 0  # Bhool gaya toh zero le lenge
                 category = row[1]
                 total += amount
-                summary[category] = summary.get(category, 0) + amount
+                if category in summary:
+                    summary[category] += amount
+                else:
+                    summary[category] = amount
     except FileNotFoundError:
+        # Bhai, file hi nahi mili, ab kya summary dikhayein
         return
-
     msg = f"Total: ₹{total:.2f}\n\nCategory-wise:\n"
-    for cat, amt in summary.items():
+    for cat in summary:
+        amt = summary[cat]
         msg += f"- {cat}: ₹{amt:.2f}\n"
+    # TODO: Yahan pe aur details add kar sakte hain, abhi itna hi
     messagebox.showinfo("Expense Summary", msg)
 
-# Tkinter UI Setup
-init_file()
-root = tk.Tk()
-root.title("Expense Tracker")
-root.geometry("700x500")
-
-frame = tk.Frame(root)
-frame.pack(pady=10)
-
-amount_var = tk.StringVar()
-desc_var = tk.StringVar()
-category_var = tk.StringVar(value="Food")
-
-# Input Fields
-tk.Label(frame, text="Amount:").grid(row=0, column=0)
-tk.Entry(frame, textvariable=amount_var).grid(row=0, column=1)
-
-tk.Label(frame, text="Description:").grid(row=0, column=2)
-tk.Entry(frame, textvariable=desc_var).grid(row=0, column=3)
-
-tk.Label(frame, text="Category:").grid(row=1, column=0)
-tk.OptionMenu(frame, category_var, "Food", "Travel", "Rent", "Shopping", "Other").grid(row=1, column=1)
-
-tk.Button(frame, text="Add Expense", command=add_expense).grid(row=1, column=3)
-
-# Treeview for displaying expenses
-tree = ttk.Treeview(root, columns=("Date", "Category", "Amount", "Description"), show='headings')
-for col in ("Date", "Category", "Amount", "Description"):
-    tree.heading(col, text=col)
-    tree.column(col, width=150)
-tree.pack(pady=20, fill=tk.BOTH, expand=True)
-
-#graph section
+# Category wise graph dikhao - chal ab graph ki baari hain
 def show_graph():
     summary = {}
-
     try:
         with open(FILENAME, 'r') as file:
             reader = csv.reader(file)
             next(reader)
             for row in reader:
                 category = row[1]
-                amount = float(row[2])
-                summary[category] = summary.get(category, 0) + amount
+                try:
+                    amount = float(row[2])
+                except:
+                    amount = 0  # Bhool gaya toh zero le lenge
+                if category in summary:
+                    summary[category] += amount
+                else:
+                    summary[category] = amount
     except FileNotFoundError:
-        messagebox.showerror("Error", "No data available.")
+        messagebox.showerror("Error", "Koi data nahi mila, kyuki hain hi ni.")
         return
-
-    if not summary:
-        messagebox.showinfo("No Data", "No expenses to display.")
+    if len(summary) == 0:
+        messagebox.showinfo("No Data", "Kuch bhi nahi hai dikhane ko.")
         return
-
-    categories = list(summary.keys())
-    amounts = list(summary.values())
-
+    categories = []
+    amounts = []
+    for cat in summary:
+        categories.append(cat)
+        amounts.append(summary[cat])
+    # TODO: Pie chart bhi bana sakte hain future mein
     plt.figure(figsize=(8, 5))
     plt.bar(categories, amounts, color='skyblue')
-    plt.xlabel('Category')
-    plt.ylabel('Amount Spent (₹)')
-    plt.title('Expenses by Category')
+    plt.xlabel('Category')  # X axis ka naam
+    plt.ylabel('Amount Spent (₹)')  # Y axis ka naam
+    plt.title('Expenses by Category')  # Title mast hai
     plt.tight_layout()
     plt.show()
 
+# --- UI Setup --- yha bhai bs ui ui ki baatein hongi
 
-# Action Buttons
-btn_frame = tk.Frame(root)
-btn_frame.pack()
-tk.Button(btn_frame, text="Delete Selected", command=delete_expense).pack(side=tk.LEFT, padx=10)
-tk.Button(btn_frame, text="Show Summary", command=show_summary).pack(side=tk.LEFT)
+init_file()
+root = tk.Tk()
+root.title("Expense Tracker")
+root.geometry("700x500")
 
-tk.Button(btn_frame, text="Show Graph", command=show_graph).pack(side=tk.LEFT, padx=10)
+# ---- Input fields ek hi line mein (grid se) ----
+input_frame = tk.Frame(root)
+input_frame.pack(pady=10)
 
+amount_label = tk.Label(input_frame, text="Amount:")
+amount_label.grid(row=0, column=0, padx=5)
+amount_var = tk.StringVar()
+amount_entry = tk.Entry(input_frame, textvariable=amount_var, width=10)
+amount_entry.grid(row=0, column=1, padx=5)
 
+desc_label = tk.Label(input_frame, text="Description:")
+desc_label.grid(row=0, column=2, padx=5)
+desc_var = tk.StringVar()
+desc_entry = tk.Entry(input_frame, textvariable=desc_var, width=15)
+desc_entry.grid(row=0, column=3, padx=5)
 
+category_label = tk.Label(input_frame, text="Category:")
+category_label.grid(row=0, column=4, padx=5)
+category_var = tk.StringVar(value="Food")
+category_options = ["Food", "Travel", "Rent", "Shopping", "Other"]
+category_menu = tk.OptionMenu(input_frame, category_var, *category_options)
+category_menu.grid(row=0, column=5, padx=5)
+
+add_btn = tk.Button(input_frame, text="Add Expense", command=add_expense)
+add_btn.grid(row=0, column=6, padx=5)
+
+# --- Table ---
+tree = ttk.Treeview(root, columns=("Date", "Category", "Amount", "Description"), show='headings')
+tree.heading("Date", text="Date")
+tree.heading("Category", text="Category")
+tree.heading("Amount", text="Amount")
+tree.heading("Description", text="Description")
+tree.column("Date", width=150)
+tree.column("Category", width=100)
+tree.column("Amount", width=100)
+tree.column("Description", width=200)
+tree.pack(pady=10, fill=tk.BOTH, expand=True)
+
+# --- Buttons waale section bhi simple tarike se bana diye ---
+delete_btn = tk.Button(root, text="Delete Selected", command=delete_expense)
+delete_btn.pack(side=tk.LEFT, padx=10, pady=5)
+
+summary_btn = tk.Button(root, text="Show Summary", command=show_summary)
+summary_btn.pack(side=tk.LEFT, padx=10, pady=5)
+
+graph_btn = tk.Button(root, text="Show Graph", command=show_graph)
+graph_btn.pack(side=tk.LEFT, padx=10, pady=5)
+
+# Shuru mein data load karo, warna khali dikhega
 load_expenses()
+
 root.mainloop()
-
-
