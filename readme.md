@@ -1,13 +1,36 @@
-# 💸 Personal Expense Tracker
+#EXPENSE TRACKER APP
 
-A simple Python console app to track your daily expenses, built using only core Python and the CSV module.
+A simple desktop application to manage daily expenses. Built with Python, Tkinter, and CSV for local data storage.
 
-## 🧠 Features
-- Add, view, and delete expenses
-- Categorize and summarize spending
-- Stores data in CSV file
-- Shows category-wise totals
+Features
+Add, view, and delete expenses
 
-## 🔧 How to Run
-```bash
-python main.py
+Category-wise summary
+
+Bar graph visualization using Matplotlib
+
+Data stored locally in a CSV file
+
+Clean and user-friendly GUI
+
+Requirements
+Python 3.x
+
+tkinter, csv, matplotlib
+
+How to Run
+Clone the repo
+
+Run the Python script:
+
+bash
+Copy
+Edit
+python expense_tracker.py
+Folder Structure
+main.py – main application file
+
+expenses.csv – auto-generated to store data
+
+License
+This project is open-source and free to use
