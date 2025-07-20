@@ -23,3 +23,9 @@ A simple desktop application to manage daily expenses. Built with Python, Tkinte
    ```bash
    git clone https://github.com/003shrey/Expense-Tracker-GUI.git
    cd Expense-Tracker-GUI
+
+
+## License
+
+This project is open-sourced under the **MIT License**.  
+Feel free to use, modify, and share as needed.
